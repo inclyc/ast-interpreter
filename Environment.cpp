@@ -60,9 +60,8 @@ void Environment::declref(DeclRefExpr *declref) {
   mStack.back().setPC(declref);
   if (declref->getType()->isIntegerType()) {
     Decl *decl = declref->getFoundDecl();
-
-    int val = mStack.back().getDeclVal(decl);
-    mStack.back().bindStmt(declref, val);
+    assert(decl);
+    mStack.back().bindStmt(declref, lookupDeclValue(*decl));
   }
 }
 
@@ -90,5 +89,24 @@ void Environment::call(CallExpr *callexpr) {
     llvm::errs() << val;
   } else {
     /// You could add your code here for Function call Return
+  }
+}
+
+void Environment::registerGlobalVar(VarDecl &var, VariableValueTy value) {
+  assert(mGlovalVars.count(&var) == 0);
+  mGlovalVars.insert({&var, value});
+}
+
+void Environment::registerGlobalVarFromStack(VarDecl &var, Stmt &init) {
+  auto value = mStack.back().getStmtVal(&init);
+  registerGlobalVar(var, value);
+}
+
+int Environment::lookupDeclValue(Decl &decl) {
+  try {
+    return mStack.back().getDeclVal(&decl);
+  } catch (NoSuchDeclException &) {
+    // If the variable is not defined in function stack, it is in global vars.
+    return mGlovalVars.at(&decl);
   }
 }

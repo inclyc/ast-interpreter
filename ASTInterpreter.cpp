@@ -54,6 +54,24 @@ public:
     TranslationUnitDecl *decl = context.getTranslationUnitDecl();
     mEnv.init(decl);
 
+    // Process global variables.
+    {
+      auto _ = Environment::GlobalVarRAII(mEnv);
+      for (auto topDecl : decl->decls()) {
+        if (auto varDecl = llvm::dyn_cast<VarDecl>(topDecl)) {
+          VarDecl &var = *varDecl;
+          Expr *init = var.getInit();
+
+          if (init) {
+            mVisitor.Visit(init);
+            mEnv.registerGlobalVarFromStack(var, *init);
+          } else {
+            mEnv.registerGlobalVar(var, 0);
+          }
+        }
+      }
+    }
+
     FunctionDecl *entry = mEnv.getEntry();
     mVisitor.VisitStmt(entry->getBody());
   }
