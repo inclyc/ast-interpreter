@@ -4,6 +4,12 @@ Environment::Environment()
     : mStack(), mFree(nullptr), mMalloc(nullptr), mInput(nullptr), mOutput(nullptr),
       mEntry(nullptr) {}
 
+void Environment::integerLiteral(IntegerLiteral& Literal) {
+  llvm::APInt Value = Literal.getValue();
+  assert(Value.getBitWidth() <= 32);
+  mStack.back().bindStmt(&Literal, Value.getSExtValue());
+}
+
 
 void Environment::init(TranslationUnitDecl *unit) {
   for (TranslationUnitDecl::decl_iterator i = unit->decls_begin(),

@@ -67,6 +67,9 @@ class Environment {
 public:
   /// Get the declartions to the built-in functions
   Environment();
+  
+  /// Record integer literals
+  void integerLiteral(IntegerLiteral& Literal);
 
   /// Initialize the Environment
   void init(TranslationUnitDecl *unit);

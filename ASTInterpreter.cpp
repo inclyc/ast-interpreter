@@ -18,6 +18,10 @@ public:
    : EvaluatedExprVisitor(context), mEnv(env) {}
    virtual ~InterpreterVisitor() {}
 
+   void VisitIntegerLiteral(IntegerLiteral *Expr) {
+      mEnv->integerLiteral(*Expr);
+   }
+
    virtual void VisitBinaryOperator (BinaryOperator * bop) {
 	   VisitStmt(bop);
 	   mEnv->binop(bop);
