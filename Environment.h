@@ -1,4 +1,5 @@
-//==--- tools/clang-check/ClangInterpreter.cpp - Clang Interpreter tool --------------===//
+//==--- tools/clang-check/ClangInterpreter.cpp - Clang Interpreter tool
+//--------------===//
 //===----------------------------------------------------------------------===//
 #include <stdio.h>
 
@@ -12,36 +13,29 @@
 using namespace clang;
 
 class StackFrame {
-   /// StackFrame maps Variable Declaration to Value
-   /// Which are either integer or addresses (also represented using an Integer value)
-   std::map<Decl*, int> mVars;
-   std::map<Stmt*, int> mExprs;
-   /// The current stmt
-   Stmt * mPC;
-public:
-   StackFrame() : mVars(), mExprs(), mPC() {
-   }
+  /// StackFrame maps Variable Declaration to Value
+  /// Which are either integer or addresses (also represented using an Integer
+  /// value)
+  std::map<Decl *, int> mVars;
+  std::map<Stmt *, int> mExprs;
+  /// The current stmt
+  Stmt *mPC;
 
-   void bindDecl(Decl* decl, int val) {
-      mVars[decl] = val;
-   }    
-   int getDeclVal(Decl * decl) {
-      assert (mVars.find(decl) != mVars.end());
-      return mVars.find(decl)->second;
-   }
-   void bindStmt(Stmt * stmt, int val) {
-	   mExprs[stmt] = val;
-   }
-   int getStmtVal(Stmt * stmt) {
-	   assert (mExprs.find(stmt) != mExprs.end());
-	   return mExprs[stmt];
-   }
-   void setPC(Stmt * stmt) {
-	   mPC = stmt;
-   }
-   Stmt * getPC() {
-	   return mPC;
-   }
+public:
+  StackFrame() : mVars(), mExprs(), mPC() {}
+
+  void bindDecl(Decl *decl, int val) { mVars[decl] = val; }
+  int getDeclVal(Decl *decl) {
+    assert(mVars.find(decl) != mVars.end());
+    return mVars.find(decl)->second;
+  }
+  void bindStmt(Stmt *stmt, int val) { mExprs[stmt] = val; }
+  int getStmtVal(Stmt *stmt) {
+    assert(mExprs.find(stmt) != mExprs.end());
+    return mExprs[stmt];
+  }
+  void setPC(Stmt *stmt) { mPC = stmt; }
+  Stmt *getPC() { return mPC; }
 };
 
 /// Heap maps address to a value
@@ -56,20 +50,21 @@ public:
 */
 
 class Environment {
-   std::vector<StackFrame> mStack;
+  std::vector<StackFrame> mStack;
 
-   FunctionDecl * mFree;				/// Declartions to the built-in functions
-   FunctionDecl * mMalloc;
-   FunctionDecl * mInput;
-   FunctionDecl * mOutput;
+  FunctionDecl *mFree; /// Declartions to the built-in functions
+  FunctionDecl *mMalloc;
+  FunctionDecl *mInput;
+  FunctionDecl *mOutput;
 
-   FunctionDecl * mEntry;
+  FunctionDecl *mEntry;
+
 public:
   /// Get the declartions to the built-in functions
   Environment();
-  
+
   /// Record integer literals
-  void integerLiteral(IntegerLiteral& Literal);
+  void integerLiteral(IntegerLiteral &Literal);
 
   /// Initialize the Environment
   void init(TranslationUnitDecl *unit);
@@ -87,5 +82,3 @@ public:
   /// !TODO Support Function Call
   void call(CallExpr *callexpr);
 };
-
-
