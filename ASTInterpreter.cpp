@@ -18,8 +18,8 @@ public:
       : EvaluatedExprVisitor(context), mEnv(env) {}
   virtual ~InterpreterVisitor() {}
 
-  void VisitIntegerLiteral(IntegerLiteral *Expr) {
-    mEnv->integerLiteral(*Expr);
+  void VisitIntegerLiteral(IntegerLiteral *expr) {
+    mEnv->integerLiteral(*expr);
   }
 
   virtual void VisitBinaryOperator(BinaryOperator *bop) {
@@ -50,8 +50,8 @@ public:
       : mEnv(), mVisitor(context, &mEnv) {}
   virtual ~InterpreterConsumer() {}
 
-  virtual void HandleTranslationUnit(clang::ASTContext &Context) {
-    TranslationUnitDecl *decl = Context.getTranslationUnitDecl();
+  virtual void HandleTranslationUnit(clang::ASTContext &context) {
+    TranslationUnitDecl *decl = context.getTranslationUnitDecl();
     mEnv.init(decl);
 
     FunctionDecl *entry = mEnv.getEntry();
@@ -66,9 +66,9 @@ private:
 class InterpreterClassAction : public ASTFrontendAction {
 public:
   virtual std::unique_ptr<clang::ASTConsumer>
-  CreateASTConsumer(clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
+  CreateASTConsumer(clang::CompilerInstance &compiler, llvm::StringRef inFile) {
     return std::unique_ptr<clang::ASTConsumer>(
-        new InterpreterConsumer(Compiler.getASTContext()));
+        new InterpreterConsumer(compiler.getASTContext()));
   }
 };
 

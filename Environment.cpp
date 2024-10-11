@@ -4,10 +4,10 @@ Environment::Environment()
     : mStack(), mFree(nullptr), mMalloc(nullptr), mInput(nullptr),
       mOutput(nullptr), mEntry(nullptr) {}
 
-void Environment::integerLiteral(IntegerLiteral &Literal) {
-  llvm::APInt Value = Literal.getValue();
-  assert(Value.getBitWidth() <= 32);
-  mStack.back().bindStmt(&Literal, Value.getSExtValue());
+void Environment::integerLiteral(IntegerLiteral &literal) {
+  llvm::APInt value = literal.getValue();
+  assert(value.getBitWidth() <= 32);
+  mStack.back().bindStmt(&literal, value.getSExtValue());
 }
 
 void Environment::init(TranslationUnitDecl *unit) {
@@ -15,16 +15,17 @@ void Environment::init(TranslationUnitDecl *unit) {
                                           e = unit->decls_end();
        i != e; ++i) {
     if (FunctionDecl *fdecl = dyn_cast<FunctionDecl>(*i)) {
-      if (fdecl->getName().equals("FREE"))
+      if (fdecl->getName().equals("FREE")) {
         mFree = fdecl;
-      else if (fdecl->getName().equals("MALLOC"))
+      } else if (fdecl->getName().equals("MALLOC")) {
         mMalloc = fdecl;
-      else if (fdecl->getName().equals("GET"))
+      } else if (fdecl->getName().equals("GET")) {
         mInput = fdecl;
-      else if (fdecl->getName().equals("PRINT"))
+      } else if (fdecl->getName().equals("PRINT")) {
         mOutput = fdecl;
-      else if (fdecl->getName().equals("main"))
+      } else if (fdecl->getName().equals("main")) {
         mEntry = fdecl;
+      }
     }
   }
   mStack.push_back(StackFrame());

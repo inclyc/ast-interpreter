@@ -64,7 +64,7 @@ public:
   Environment();
 
   /// Record integer literals
-  void integerLiteral(IntegerLiteral &Literal);
+  void integerLiteral(IntegerLiteral &literal);
 
   /// Initialize the Environment
   void init(TranslationUnitDecl *unit);
