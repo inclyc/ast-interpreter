@@ -4,14 +4,13 @@
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendAction.h"
-#include "clang/Tooling/Tooling.h"
+#include "clang/AST/Expr.h"
 
 #include <exception>
 
 using namespace clang;
+
+using VariableValueTy = int;
 
 struct NoSuchDeclException : std::exception {
   const char *what() const noexcept override { return "No such declaration"; }
@@ -21,23 +20,23 @@ class StackFrame {
   /// StackFrame maps Variable Declaration to Value
   /// Which are either integer or addresses (also represented using an Integer
   /// value)
-  std::map<Decl *, int> mVars;
-  std::map<Stmt *, int> mExprs;
+  std::map<Decl *, VariableValueTy> mVars;
+  std::map<Stmt *, VariableValueTy> mExprs;
   /// The current stmt
   Stmt *mPC;
 
 public:
   StackFrame() : mVars(), mExprs(), mPC() {}
 
-  void bindDecl(Decl *decl, int val) { mVars[decl] = val; }
-  int getDeclVal(Decl *decl) {
+  void bindDecl(Decl *decl, VariableValueTy val) { mVars[decl] = val; }
+  VariableValueTy getDeclVal(Decl *decl) {
     if (mVars.find(decl) != mVars.end()) {
       return mVars.find(decl)->second;
     }
     throw NoSuchDeclException();
   }
-  void bindStmt(Stmt *stmt, int val) { mExprs[stmt] = val; }
-  int getStmtVal(Stmt *stmt) {
+  void bindStmt(Stmt *stmt, VariableValueTy val) { mExprs[stmt] = val; }
+  VariableValueTy getStmtVal(Stmt *stmt) {
     assert(mExprs.find(stmt) != mExprs.end());
     return mExprs[stmt];
   }
@@ -45,7 +44,6 @@ public:
   Stmt *getPC() { return mPC; }
 };
 
-using VariableValueTy = int;
 using GlobalVarMap = std::map<Decl *, VariableValueTy>;
 
 /// Heap maps address to a value
@@ -84,7 +82,9 @@ private:
 
   FunctionDecl *mEntry;
 
-  int lookupDeclValue(Decl &decl);
+  VariableValueTy lookupDeclValue(Decl &decl);
+  void bindStmt(Stmt &s, VariableValueTy val);
+  VariableValueTy getStmtVal(Stmt &s);
 
 public:
   /// Get the declartions to the built-in functions
