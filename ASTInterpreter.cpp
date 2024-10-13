@@ -90,6 +90,29 @@ public:
     }
   }
 
+  void VisitForStmt(ForStmt *pForStmt) {
+    ForStmt &forStmt = assertDeref(pForStmt);
+
+    Stmt *init = forStmt.getInit();
+    Expr *x = forStmt.getCond();
+    Stmt *inc = forStmt.getInc();
+    Stmt *body = forStmt.getBody();
+
+    if (init) {
+      Visit(init);
+    }
+
+    // If x is null, always assume the cond is "true".
+    for (; x ? (Visit(x), mEnv->getStmtVal(*x)) : true;) {
+      if (body) {
+        Visit(body);
+      }
+      if (inc) {
+        Visit(inc);
+      }
+    }
+  }
+
   void VisitReturnStmt(ReturnStmt *preturnStmt) {
     VisitStmt(preturnStmt);
     mEnv->returnStmt(assertDeref(preturnStmt));
