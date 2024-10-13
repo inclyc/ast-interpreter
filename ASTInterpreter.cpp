@@ -16,29 +16,28 @@ class InterpreterVisitor : public EvaluatedExprVisitor<InterpreterVisitor> {
 public:
   explicit InterpreterVisitor(const ASTContext &context, Environment *env)
       : EvaluatedExprVisitor(context), mEnv(env) {}
-  virtual ~InterpreterVisitor() {}
 
   void VisitIntegerLiteral(IntegerLiteral *expr) {
     mEnv->integerLiteral(*expr);
   }
 
-  virtual void VisitBinaryOperator(BinaryOperator *bop) {
+  void VisitBinaryOperator(BinaryOperator *bop) {
     VisitStmt(bop);
     mEnv->binop(bop);
   }
-  virtual void VisitDeclRefExpr(DeclRefExpr *expr) {
+  void VisitDeclRefExpr(DeclRefExpr *expr) {
     VisitStmt(expr);
     mEnv->declref(expr);
   }
-  virtual void VisitCastExpr(CastExpr *expr) {
+  void VisitCastExpr(CastExpr *expr) {
     VisitStmt(expr);
     mEnv->cast(expr);
   }
-  virtual void VisitCallExpr(CallExpr *call) {
+  void VisitCallExpr(CallExpr *call) {
     VisitStmt(call);
     mEnv->call(call);
   }
-  virtual void VisitDeclStmt(DeclStmt *declstmt) { mEnv->decl(declstmt); }
+  void VisitDeclStmt(DeclStmt *declstmt) { mEnv->decl(declstmt); }
 
 private:
   Environment *mEnv;
