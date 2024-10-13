@@ -8,9 +8,18 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
 
+#include "Environment.h"
+#include "Support.h"
+
+#include <exception>
+
 using namespace clang;
 
-#include "Environment.h"
+namespace {
+
+struct ReturnException : std::exception {};
+
+} // namespace
 
 class InterpreterVisitor : public EvaluatedExprVisitor<InterpreterVisitor> {
 public:
@@ -35,8 +44,29 @@ public:
   }
   void VisitCallExpr(CallExpr *call) {
     VisitStmt(call);
-    mEnv->call(call);
+    using VisitorAction = Environment::FunctionCallVisitorAction;
+    VisitorAction visitorAction = mEnv->call(call);
+    switch (visitorAction.kind()) {
+    case VisitorAction::Kind::IGNORE:
+      break;
+    case VisitorAction::Kind::VISIT_BODY: {
+      FunctionDecl &func = visitorAction.getFunctionToVisit();
+      try {
+        Visit(func.getBody());
+      } catch (ReturnException &e) {
+      }
+      mEnv->callExit();
+      break;
+    }
+    }
   }
+
+  void VisitReturnStmt(ReturnStmt *preturnStmt) {
+    VisitStmt(preturnStmt);
+    mEnv->returnStmt(assertDeref(preturnStmt));
+    throw ReturnException();
+  }
+
   void VisitDeclStmt(DeclStmt *declstmt) { mEnv->decl(declstmt); }
 
 private:
@@ -72,7 +102,11 @@ public:
     }
 
     FunctionDecl *entry = mEnv.getEntry();
-    mVisitor.VisitStmt(entry->getBody());
+    try {
+      mVisitor.VisitStmt(entry->getBody());
+    } catch (ReturnException &) {
+      // Entry function "return"s, just ignore it.
+    }
   }
 
 private:

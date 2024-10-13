@@ -1,5 +1,7 @@
 #include "Environment.h"
+#include "Support.h"
 
+#include <cassert>
 #include <iostream>
 
 Environment::Environment()
@@ -111,23 +113,70 @@ void Environment::cast(CastExpr *castexpr) {
   }
 }
 
-void Environment::call(CallExpr *callexpr) {
-  mStack.back().setPC(callexpr);
+Environment::FunctionCallVisitorAction Environment::call(CallExpr *pcallexpr) {
+  mStack.back().setPC(pcallexpr);
   VariableValueTy val = 0;
-  FunctionDecl *callee = callexpr->getDirectCallee();
-  if (callee == mInput) {
+  FunctionDecl *pcallee = pcallexpr->getDirectCallee();
+  auto &call = assertDeref(pcallee);
+  auto &callexpr = assertDeref(pcallexpr);
+  if (pcallee == mInput) {
     llvm::errs() << "Please Input an Integer Value : ";
     std::cin >> val;
 
-    bindStmt(*callexpr, val);
-  } else if (callee == mOutput) {
-    Expr *expr = callexpr->getArg(0);
+    bindStmt(callexpr, val);
+    return FunctionCallVisitorAction::mkIgnore();
+  } else if (pcallee == mOutput) {
+    Expr *expr = callexpr.getArg(0);
     assert(expr);
     val = getStmtVal(*expr);
     llvm::errs() << val;
+    return FunctionCallVisitorAction::mkIgnore();
   } else {
-    /// You could add your code here for Function call Return
+    FunctionDecl *pdef = pcallee->getDefinition();
+    assert(pdef && "Undefined function called!");
+    auto &def = *pdef;
+
+    // Prepare a new stack for this function call.
+    StackFrame newFrame;
+    unsigned numArgs = callexpr.getNumArgs();
+    for (unsigned i = 0; i < numArgs; i++) {
+      ParmVarDecl *pparam = def.getParamDecl(i);
+      assert(pparam);
+      newFrame.bindDecl(pparam, getStmtVal(assertDeref(callexpr.getArg(i))));
+    }
+
+    mStack.push_back(newFrame);
+
+    // Notify the visitor that it should jump to the function body
+    // and evaluate it.
+    return FunctionCallVisitorAction::mkVisitBody({&def});
   }
+}
+
+clang::FunctionDecl &
+Environment::FunctionCallVisitorAction::getFunctionToVisit() {
+  assert(mKind == Kind::VISIT_BODY);
+  return assertDeref(mVBPayload.mDecl);
+}
+
+void Environment::returnStmt(ReturnStmt &ret) {
+  Expr *value = ret.getRetValue();
+  mStack.back().setReturn(getStmtVal(assertDeref(value)));
+}
+
+void Environment::callExit() {
+  assert(!mStack.empty());
+
+  StackFrame calleeFrame = mStack.back();
+  mStack.pop_back();
+
+  assert(!mStack.empty());
+
+  StackFrame &callerFrame = mStack.back();
+
+  // Set the value of "callexpr" in caller frame to "return"-ed value.
+  VariableValueTy returnedValue = calleeFrame.getReturn();
+  callerFrame.bindStmt(callerFrame.getPC(), returnedValue);
 }
 
 void Environment::registerGlobalVar(VarDecl &var, VariableValueTy value) {

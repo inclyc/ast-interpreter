@@ -25,8 +25,13 @@ class StackFrame {
   /// The current stmt
   Stmt *mPC;
 
+  VariableValueTy mReturn;
+
 public:
-  StackFrame() : mVars(), mExprs(), mPC() {}
+  StackFrame() : mVars(), mExprs(), mPC(), mReturn() {}
+
+  void setReturn(VariableValueTy val) { mReturn = val; }
+  VariableValueTy getReturn() const { return mReturn; }
 
   void bindDecl(Decl *decl, VariableValueTy val) { mVars[decl] = val; }
   VariableValueTy getDeclVal(Decl *decl) {
@@ -70,6 +75,39 @@ public:
     ~GlobalVarRAII() { mE.mStack.pop_back(); }
   };
 
+  class FunctionCallVisitorAction {
+  public:
+    enum class Kind {
+      IGNORE,
+      VISIT_BODY,
+    };
+
+    /// This value should be non-null if Kind == "VISIT_BODY"
+    struct VisitBodyPayload {
+      FunctionDecl *mDecl = nullptr;
+    };
+
+  private:
+    Kind mKind;
+    VisitBodyPayload mVBPayload;
+
+    FunctionCallVisitorAction(Kind kind, VisitBodyPayload vbpayload)
+        : mKind(kind), mVBPayload(vbpayload) {}
+
+  public:
+    static FunctionCallVisitorAction mkIgnore() {
+      return FunctionCallVisitorAction(Kind::IGNORE, {});
+    }
+
+    static FunctionCallVisitorAction mkVisitBody(VisitBodyPayload payload) {
+      return {Kind::VISIT_BODY, {payload}};
+    }
+
+    [[nodiscard]] FunctionDecl &getFunctionToVisit();
+
+    [[nodiscard]] Kind kind() const { return mKind; }
+  };
+
 private:
   std::vector<StackFrame> mStack;
 
@@ -108,6 +146,10 @@ public:
 
   void cast(CastExpr *castexpr);
 
-  /// !TODO Support Function Call
-  void call(CallExpr *callexpr);
+  [[nodiscard]] FunctionCallVisitorAction call(CallExpr *callexpr);
+
+  void returnStmt(ReturnStmt &ret);
+
+  /// The function call exited. Switch the context to caller.
+  void callExit();
 };
