@@ -79,6 +79,17 @@ public:
     }
   }
 
+  void VisitWhileStmt(WhileStmt *pWhileStmt) {
+    WhileStmt &whileStmt = assertDeref(pWhileStmt);
+
+    Expr *cond = whileStmt.getCond();
+    Stmt *whileBody = whileStmt.getBody();
+
+    for (Visit(cond); mEnv->getStmtVal(assertDeref(cond)); Visit(cond)) {
+      Visit(whileBody);
+    }
+  }
+
   void VisitReturnStmt(ReturnStmt *preturnStmt) {
     VisitStmt(preturnStmt);
     mEnv->returnStmt(assertDeref(preturnStmt));
