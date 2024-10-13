@@ -120,9 +120,7 @@ private:
 
   FunctionDecl *mEntry;
 
-  VariableValueTy lookupDeclValue(Decl &decl);
   void bindStmt(Stmt &s, VariableValueTy val);
-  VariableValueTy getStmtVal(Stmt &s);
 
 public:
   /// Get the declartions to the built-in functions
@@ -152,4 +150,7 @@ public:
 
   /// The function call exited. Switch the context to caller.
   void callExit();
+
+  VariableValueTy lookupDeclValue(Decl &decl);
+  VariableValueTy getStmtVal(Stmt &s);
 };

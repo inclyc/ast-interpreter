@@ -61,6 +61,24 @@ public:
     }
   }
 
+  void VisitIfStmt(IfStmt *pIfStmt) {
+    IfStmt &ifStmt = assertDeref(pIfStmt);
+
+    Expr *cond = ifStmt.getCond();
+    Visit(cond);
+    Stmt *ifThen = ifStmt.getThen();
+    Stmt *ifElse = ifStmt.getElse();
+
+    // Check if the cond evaluates to non-zero
+    VariableValueTy condValue = mEnv->getStmtVal(assertDeref(cond));
+    Stmt *nextBlock = condValue ? ifThen : ifElse;
+
+    // Jump to next block, if it exists.
+    if (nextBlock) {
+      Visit(nextBlock);
+    }
+  }
+
   void VisitReturnStmt(ReturnStmt *preturnStmt) {
     VisitStmt(preturnStmt);
     mEnv->returnStmt(assertDeref(preturnStmt));
