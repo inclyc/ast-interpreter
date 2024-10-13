@@ -151,6 +151,6 @@ public:
   /// The function call exited. Switch the context to caller.
   void callExit();
 
-  VariableValueTy lookupDeclValue(Decl &decl);
+  VariableValueTy getDeclVal(Decl &decl);
   VariableValueTy getStmtVal(Stmt &s);
 };

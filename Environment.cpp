@@ -101,7 +101,7 @@ void Environment::declref(DeclRefExpr *declref) {
   if (declref->getType()->isIntegerType()) {
     Decl *decl = declref->getFoundDecl();
     assert(decl);
-    bindStmt(*declref, lookupDeclValue(*decl));
+    bindStmt(*declref, getDeclVal(*decl));
   }
 }
 
@@ -191,7 +191,7 @@ void Environment::registerGlobalVarFromStack(VarDecl &var, Stmt &init) {
   registerGlobalVar(var, value);
 }
 
-int Environment::lookupDeclValue(Decl &decl) {
+int Environment::getDeclVal(Decl &decl) {
   try {
     return mStack.back().getDeclVal(&decl);
   } catch (NoSuchDeclException &) {
