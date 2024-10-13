@@ -90,7 +90,9 @@ void Environment::decl(DeclStmt *declstmt) {
        it != ie; ++it) {
     Decl *decl = *it;
     if (VarDecl *vardecl = dyn_cast<VarDecl>(decl)) {
-      mStack.back().bindDecl(vardecl, 0);
+      Expr *init = vardecl->getInit();
+      VariableValueTy initValue = init ? getStmtVal(*init) : 0;
+      mStack.back().bindDecl(vardecl, initValue);
     }
   }
 }

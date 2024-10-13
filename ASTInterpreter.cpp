@@ -67,7 +67,10 @@ public:
     throw ReturnException();
   }
 
-  void VisitDeclStmt(DeclStmt *declstmt) { mEnv->decl(declstmt); }
+  void VisitDeclStmt(DeclStmt *declstmt) {
+    VisitStmt(declstmt);
+    mEnv->decl(declstmt);
+  }
 
 private:
   Environment *mEnv;
