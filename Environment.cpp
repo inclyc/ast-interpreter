@@ -35,6 +35,7 @@ void Environment::init(TranslationUnitDecl *unit) {
 
 clang::FunctionDecl *Environment::getEntry() { return mEntry; }
 void Environment::binop(BinaryOperator *bop) {
+  assert(bop);
   Expr *left = bop->getLHS();
   Expr *right = bop->getRHS();
 
@@ -46,6 +47,37 @@ void Environment::binop(BinaryOperator *bop) {
     if (DeclRefExpr *declexpr = dyn_cast<DeclRefExpr>(left)) {
       Decl *decl = declexpr->getFoundDecl();
       mStack.back().bindDecl(decl, val);
+    }
+  } else {
+    VariableValueTy lhs = getStmtVal(*left);
+    VariableValueTy rhs = getStmtVal(*right);
+
+    // BinaryOP : + | - | * | / | < | > | ==
+    switch (bop->getOpcode()) {
+    case clang::BO_Add:
+      bindStmt(*bop, lhs + rhs);
+      break;
+    case clang::BO_Sub:
+      bindStmt(*bop, lhs - rhs);
+      break;
+    case clang::BO_Mul:
+      bindStmt(*bop, lhs * rhs);
+      break;
+    case clang::BO_Div:
+      bindStmt(*bop, lhs / rhs);
+      break;
+    case clang::BO_LT:
+      bindStmt(*bop, lhs < rhs);
+      break;
+    case clang::BO_GT:
+      bindStmt(*bop, lhs > rhs);
+      break;
+    case clang::BO_EQ:
+      bindStmt(*bop, lhs == rhs);
+      break;
+    default:
+      assert(false && "unexpected binary operation!");
+      break;
     }
   }
 }

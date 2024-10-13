@@ -101,7 +101,6 @@ public:
 
   FunctionDecl *getEntry();
 
-  /// !TODO Support comparison operation
   void binop(BinaryOperator *bop);
 
   void decl(DeclStmt *declstmt);
