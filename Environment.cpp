@@ -84,6 +84,12 @@ void Environment::binop(BinaryOperator *bop) {
   }
 }
 
+void Environment::unaryOp(UnaryOperator &unaryOp) {
+  VariableValueTy val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
+  assert(unaryOp.getOpcode() == clang::UO_Minus);
+  bindStmt(unaryOp, -val);
+}
+
 void Environment::decl(DeclStmt *declstmt) {
   for (DeclStmt::decl_iterator it = declstmt->decl_begin(),
                                ie = declstmt->decl_end();

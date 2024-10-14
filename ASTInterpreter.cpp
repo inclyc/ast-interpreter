@@ -34,6 +34,12 @@ public:
     VisitStmt(bop);
     mEnv->binop(bop);
   }
+
+  void VisitUnaryOperator(UnaryOperator *unaryOp) {
+    VisitStmt(unaryOp);
+    mEnv->unaryOp(assertDeref(unaryOp));
+  }
+
   void VisitDeclRefExpr(DeclRefExpr *expr) {
     VisitStmt(expr);
     mEnv->declref(expr);

@@ -139,6 +139,8 @@ public:
 
   void binop(BinaryOperator *bop);
 
+  void unaryOp(UnaryOperator &unaryOp);
+
   void decl(DeclStmt *declstmt);
   void declref(DeclRefExpr *declref);
 
