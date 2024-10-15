@@ -138,9 +138,19 @@ void Environment::paren(const ParenExpr &paren) {
 }
 
 void Environment::unaryOp(const UnaryOperator &unaryOp) {
-  const auto val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
-  assert(unaryOp.getOpcode() == clang::UO_Minus);
-  mStack.back().insertStmt(&unaryOp, ExprObject::mkVal(-val));
+  const auto subval = getStmtVal(assertDeref(unaryOp.getSubExpr()));
+  const auto val = [&]() {
+    switch (unaryOp.getOpcode()) {
+    case clang::UO_Minus:
+      return ExprObject::mkVal(-subval);
+    case clang::UO_Deref:
+      return ExprObject::mkRefHeap(subval);
+    default:
+      assert(false && "unreachable!");
+    }
+  }();
+
+  mStack.back().insertStmt(&unaryOp, val);
 }
 
 namespace {
@@ -173,7 +183,8 @@ void Environment::decl(const DeclStmt &declstmt) {
 void Environment::declref(const DeclRefExpr &declref) {
   mStack.back().setPC(&declref);
   const auto &type = *declref.getType();
-  if (type.isIntegerType() || type.isConstantArrayType()) {
+  if (type.isIntegerType() || type.isConstantArrayType() ||
+      type.isPointerType()) {
     const auto *decl = declref.getFoundDecl();
     assert(decl);
 
@@ -219,6 +230,18 @@ Environment::call(const CallExpr *pcallexpr) {
     assert(expr);
     val = getStmtVal(*expr);
     llvm::errs() << val;
+    return FunctionCallVisitorAction::mkIgnore();
+  } else if (pcallee == mMalloc) {
+    const auto *expr = callexpr.getArg(0);
+    const auto val = getStmtVal(assertDeref(expr));
+
+    // Directly call malloc, this is properly aligned.
+    const auto object =
+        ExprObject::mkVal(reinterpret_cast<ValueTy>(malloc(val)));
+
+    mStack.back().insertStmt(pcallexpr, object);
+    return FunctionCallVisitorAction::mkIgnore();
+  } else if (pcallee == mFree) {
     return FunctionCallVisitorAction::mkIgnore();
   } else {
     const auto *pdef = pcallee->getDefinition();
@@ -310,7 +333,7 @@ ValueTy &Environment::refExpr(ExprObject v) {
   case ExprObject::ValueKind::REF_STACK:
     return refStack(v.getData().mStackIndex);
   case ExprObject::ValueKind::REF_HEAP:
-    return refStack(v.getData().mHeapIndex);
+    return *reinterpret_cast<ValueTy *>(v.getData().mHeapIndex);
   case ExprObject::ValueKind::VAL:
     break;
   case ExprObject::ValueKind::REF_GLOBAL:
@@ -334,7 +357,7 @@ ValueTy Environment::getExpr(ExprObject v) const {
   case ExprObject::ValueKind::REF_STACK:
     return getStack(v.getData().mStackIndex);
   case ExprObject::ValueKind::REF_HEAP:
-    return getStack(v.getData().mHeapIndex);
+    return *reinterpret_cast<ValueTy *>(v.getData().mHeapIndex);
   case ExprObject::ValueKind::VAL:
     break;
   case ExprObject::ValueKind::REF_GLOBAL:
