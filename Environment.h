@@ -9,8 +9,6 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
 
-using GlobalVarMap = std::map<clang::Decl *, ValueTy>;
-
 /// Heap maps address to a value
 /*
 class Heap {
@@ -71,7 +69,7 @@ public:
 private:
   std::vector<StackFrame> mStack;
 
-  GlobalVarMap mGlovalVars;
+  StackFrame mGlobalFrame;
 
   clang::FunctionDecl *mFree; /// Declartions to the built-in functions
   clang::FunctionDecl *mMalloc;
@@ -79,8 +77,6 @@ private:
   clang::FunctionDecl *mOutput;
 
   clang::FunctionDecl *mEntry;
-
-  void bindStmt(clang::Stmt &s, ValueTy val);
 
 public:
   /// Get the declartions to the built-in functions
@@ -115,4 +111,8 @@ public:
 
   ValueTy getDeclVal(clang::Decl &decl);
   ValueTy getStmtVal(clang::Stmt &s);
+
+  ValueTy &refStack(std::size_t idx);
+  ValueTy &refGlobal(std::size_t idx);
+  ValueTy &refExpr(ExprObject v);
 };
