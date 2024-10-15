@@ -193,9 +193,9 @@ void Environment::declref(const DeclRefExpr &declref) {
 
 void Environment::cast(const CastExpr &castexpr) {
   mStack.back().setPC(&castexpr);
-  if (castexpr.getType()->isIntegerType()) {
-    const auto *expr = castexpr.getSubExpr();
-    assert(expr);
+  const auto *expr = castexpr.getSubExpr();
+  assert(expr);
+  if (mStack.back().containsStmt(expr)) {
     auto val = getStmtVal(*expr);
     mStack.back().insertStmt(&castexpr, ExprObject::mkVal(val));
   }
