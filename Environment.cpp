@@ -91,6 +91,8 @@ void Environment::binop(const BinaryOperator &bop) {
 
   assert(left && right);
 
+  const auto &type = *bop.getType();
+
   if (bop.isAssignmentOp()) {
     const auto val = getStmtVal(*right);
     const auto leftObj = mStack.back().getStmt(left);
@@ -104,13 +106,16 @@ void Environment::binop(const BinaryOperator &bop) {
     const auto lhs = getStmtVal(*left);
     const auto rhs = getStmtVal(*right);
 
+    // Pointer add, interpret it as offset.
+    const auto mul = type.isPointerType() ? sizeof(ValueTy) : 1;
+
     const auto val = [&]() -> ValueTy {
       // BinaryOP : + | - | * | / | < | > | ==
       switch (bop.getOpcode()) {
       case clang::BO_Add:
-        return lhs + rhs;
+        return lhs + rhs * mul;
       case clang::BO_Sub:
-        return lhs - rhs;
+        return lhs - rhs * mul;
       case clang::BO_Mul:
         return lhs * rhs;
       case clang::BO_Div:
