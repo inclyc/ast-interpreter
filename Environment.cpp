@@ -4,6 +4,8 @@
 #include <cassert>
 #include <iostream>
 
+using namespace clang;
+
 Environment::Environment()
     : mStack(), mFree(nullptr), mMalloc(nullptr), mInput(nullptr),
       mOutput(nullptr), mEntry(nullptr) {}

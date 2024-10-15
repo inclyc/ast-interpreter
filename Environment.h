@@ -2,54 +2,14 @@
 //--------------===//
 //===----------------------------------------------------------------------===//
 
+#include "StackFrame.h"
+#include "Support.h"
+
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
 
-#include <exception>
-
-using namespace clang;
-
-using VariableValueTy = int;
-
-struct NoSuchDeclException : std::exception {
-  const char *what() const noexcept override { return "No such declaration"; }
-};
-
-class StackFrame {
-  /// StackFrame maps Variable Declaration to Value
-  /// Which are either integer or addresses (also represented using an Integer
-  /// value)
-  std::map<Decl *, VariableValueTy> mVars;
-  std::map<Stmt *, VariableValueTy> mExprs;
-  /// The current stmt
-  Stmt *mPC;
-
-  VariableValueTy mReturn;
-
-public:
-  StackFrame() : mVars(), mExprs(), mPC(), mReturn() {}
-
-  void setReturn(VariableValueTy val) { mReturn = val; }
-  VariableValueTy getReturn() const { return mReturn; }
-
-  void bindDecl(Decl *decl, VariableValueTy val) { mVars[decl] = val; }
-  VariableValueTy getDeclVal(Decl *decl) {
-    if (mVars.find(decl) != mVars.end()) {
-      return mVars.find(decl)->second;
-    }
-    throw NoSuchDeclException();
-  }
-  void bindStmt(Stmt *stmt, VariableValueTy val) { mExprs[stmt] = val; }
-  VariableValueTy getStmtVal(Stmt *stmt) {
-    assert(mExprs.find(stmt) != mExprs.end());
-    return mExprs[stmt];
-  }
-  void setPC(Stmt *stmt) { mPC = stmt; }
-  Stmt *getPC() { return mPC; }
-};
-
-using GlobalVarMap = std::map<Decl *, VariableValueTy>;
+using GlobalVarMap = std::map<clang::Decl *, VariableValueTy>;
 
 /// Heap maps address to a value
 /*
@@ -84,7 +44,7 @@ public:
 
     /// This value should be non-null if Kind == "VISIT_BODY"
     struct VisitBodyPayload {
-      FunctionDecl *mDecl = nullptr;
+      clang::FunctionDecl *mDecl = nullptr;
     };
 
   private:
@@ -103,7 +63,7 @@ public:
       return {Kind::VISIT_BODY, {payload}};
     }
 
-    [[nodiscard]] FunctionDecl &getFunctionToVisit();
+    [[nodiscard]] clang::FunctionDecl &getFunctionToVisit();
 
     [[nodiscard]] Kind kind() const { return mKind; }
   };
@@ -113,46 +73,46 @@ private:
 
   GlobalVarMap mGlovalVars;
 
-  FunctionDecl *mFree; /// Declartions to the built-in functions
-  FunctionDecl *mMalloc;
-  FunctionDecl *mInput;
-  FunctionDecl *mOutput;
+  clang::FunctionDecl *mFree; /// Declartions to the built-in functions
+  clang::FunctionDecl *mMalloc;
+  clang::FunctionDecl *mInput;
+  clang::FunctionDecl *mOutput;
 
-  FunctionDecl *mEntry;
+  clang::FunctionDecl *mEntry;
 
-  void bindStmt(Stmt &s, VariableValueTy val);
+  void bindStmt(clang::Stmt &s, VariableValueTy val);
 
 public:
   /// Get the declartions to the built-in functions
   Environment();
 
   /// Record integer literals
-  void integerLiteral(IntegerLiteral &literal);
+  void integerLiteral(clang::IntegerLiteral &literal);
 
-  void registerGlobalVar(VarDecl &var, VariableValueTy value);
-  void registerGlobalVarFromStack(VarDecl &var, Stmt &init);
+  void registerGlobalVar(clang::VarDecl &var, VariableValueTy value);
+  void registerGlobalVarFromStack(clang::VarDecl &var, clang::Stmt &init);
 
   /// Initialize the Environment
-  void init(TranslationUnitDecl *unit);
+  void init(clang::TranslationUnitDecl *unit);
 
-  FunctionDecl *getEntry();
+  clang::FunctionDecl *getEntry();
 
-  void binop(BinaryOperator *bop);
+  void binop(clang::BinaryOperator *bop);
 
-  void unaryOp(UnaryOperator &unaryOp);
+  void unaryOp(clang::UnaryOperator &unaryOp);
 
-  void decl(DeclStmt *declstmt);
-  void declref(DeclRefExpr *declref);
+  void decl(clang::DeclStmt *declstmt);
+  void declref(clang::DeclRefExpr *declref);
 
-  void cast(CastExpr *castexpr);
+  void cast(clang::CastExpr *castexpr);
 
-  [[nodiscard]] FunctionCallVisitorAction call(CallExpr *callexpr);
+  [[nodiscard]] FunctionCallVisitorAction call(clang::CallExpr *callexpr);
 
-  void returnStmt(ReturnStmt &ret);
+  void returnStmt(clang::ReturnStmt &ret);
 
   /// The function call exited. Switch the context to caller.
   void callExit();
 
-  VariableValueTy getDeclVal(Decl &decl);
-  VariableValueTy getStmtVal(Stmt &s);
+  VariableValueTy getDeclVal(clang::Decl &decl);
+  VariableValueTy getStmtVal(clang::Stmt &s);
 };
