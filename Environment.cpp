@@ -237,7 +237,7 @@ ValueTy &Environment::refGlobal(std::size_t idx) {
 }
 
 ValueTy &Environment::refExpr(ExprObject v) {
-  switch (v.getType()) {
+  switch (v.getKind()) {
   case ExprObject::ValueKind::REF_STACK:
     return refStack(v.getData().mStackIndex);
   case ExprObject::ValueKind::REF_HEAP:
@@ -261,7 +261,7 @@ ValueTy Environment::getGlobal(std::size_t idx) const {
 }
 
 ValueTy Environment::getExpr(ExprObject v) const {
-  switch (v.getType()) {
+  switch (v.getKind()) {
   case ExprObject::ValueKind::REF_STACK:
     return getStack(v.getData().mStackIndex);
   case ExprObject::ValueKind::REF_HEAP:

@@ -14,7 +14,7 @@ public:
   };
 
 private:
-  ValueKind mType;
+  ValueKind mKind;
   union DataFileds {
     std::size_t mStackIndex;
     std::size_t mHeapIndex;
@@ -22,13 +22,13 @@ private:
     std::size_t mGlobalIndex;
   } mData;
 
-  ExprObject(ValueKind type, DataFileds data) : mType(type), mData(data) {}
-
 public:
   [[nodiscard]] bool isLValue() const {
-    return mType == ValueKind::REF_STACK || mType == ValueKind::REF_HEAP ||
-           mType == ValueKind::REF_GLOBAL;
+    return mKind == ValueKind::REF_STACK || mKind == ValueKind::REF_HEAP ||
+           mKind == ValueKind::REF_GLOBAL;
   }
+
+  ExprObject(ValueKind kind, DataFileds data) : mKind(kind), mData(data) {}
 
   static ExprObject mkRefStack(std::size_t idx) {
     return ExprObject(ExprObject::ValueKind::REF_STACK, {.mStackIndex = idx});
@@ -46,7 +46,7 @@ public:
     return ExprObject(ExprObject::ValueKind::VAL, {.mVal = val});
   }
 
-  ValueKind getType() const { return mType; }
+  ValueKind getKind() const { return mKind; }
 
   DataFileds getData() const { return mData; }
 };
