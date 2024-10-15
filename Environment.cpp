@@ -12,6 +12,33 @@ Environment::Environment()
     : mStack(), mFree(nullptr), mMalloc(nullptr), mInput(nullptr),
       mOutput(nullptr), mEntry(nullptr) {}
 
+void Environment::arraySubscript(const clang::ArraySubscriptExpr &asub) {
+  const auto *idxExpr = asub.getIdx();
+  const auto *baseExpr = asub.getBase();
+
+  const auto idx = getStmtVal(assertDeref(idxExpr));
+
+  // Assume base is "implict cast" + "decl ref"
+  const auto *baseImplicitCast =
+      llvm::dyn_cast_or_null<ImplicitCastExpr>(baseExpr);
+  assert(baseImplicitCast && "non-trivial array subscript!");
+
+  const auto *baseDeclRef =
+      llvm::dyn_cast_or_null<DeclRefExpr>(baseImplicitCast->getSubExpr());
+
+  assert(baseDeclRef && "non-trivial array subscript!");
+
+  const auto obj = mStack.back().getStmt(baseDeclRef);
+
+  // Subscripted array object is based on "base" obj
+  // base + offset
+  const auto objKind = obj.getKind();
+  assert(objKind == ExprObject::ValueKind::REF_STACK && "array not on stack?");
+
+  mStack.back().insertStmt(
+      &asub, ExprObject::mkRefStack(obj.getData().mStackIndex + idx));
+};
+
 void Environment::integerLiteral(const IntegerLiteral &literal) {
   llvm::APInt value = literal.getValue();
   assert(value.getBitWidth() <= 32);
@@ -93,18 +120,37 @@ void Environment::unaryOp(const UnaryOperator &unaryOp) {
   mStack.back().insertStmt(&unaryOp, ExprObject::mkVal(-val));
 }
 
+namespace {
+
+std::size_t getSizeNeededForType(const clang::Type &type) {
+  if (type.isConstantArrayType()) {
+    const auto &arrayType = cast<ConstantArrayType>(type);
+    return arrayType.getSize().getZExtValue();
+  }
+  return 1;
+}
+
+} // namespace
+
 void Environment::decl(const DeclStmt &declstmt) {
   for (const auto decl : declstmt.decls()) {
     if (VarDecl *vardecl = dyn_cast<VarDecl>(decl)) {
       const auto *init = vardecl->getInit();
       const auto initValue = init ? getStmtVal(*init) : ValueTy(0);
-      mStack.back().allocDecl(decl, initValue);
+
+      // Inspect the type of this var decl, it might be an array,
+      const auto *type = vardecl->getType().getTypePtr();
+      // Calculate how many size needed for this type.
+      const auto size = getSizeNeededForType(assertDeref(type));
+
+      mStack.back().allocDecl(decl, initValue, size);
     }
   }
 }
 void Environment::declref(const DeclRefExpr &declref) {
   mStack.back().setPC(&declref);
-  if (declref.getType()->isIntegerType()) {
+  const auto &type = *declref.getType();
+  if (type.isIntegerType() || type.isConstantArrayType()) {
     const auto *decl = declref.getFoundDecl();
     assert(decl);
 

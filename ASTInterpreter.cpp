@@ -48,6 +48,12 @@ public:
     VisitStmt(expr);
     mEnv->cast(assertDeref(expr));
   }
+
+  void VisitArraySubscriptExpr(ArraySubscriptExpr *expr) {
+    VisitStmt(expr);
+    mEnv->arraySubscript(*expr);
+  }
+
   void VisitCallExpr(CallExpr *call) {
     VisitStmt(call);
     using VisitorAction = Environment::FunctionCallVisitorAction;

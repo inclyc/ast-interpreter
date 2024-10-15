@@ -82,6 +82,8 @@ public:
   /// Get the declartions to the built-in functions
   Environment();
 
+  void arraySubscript(const clang::ArraySubscriptExpr &asub);
+
   /// Record integer literals
   void integerLiteral(const clang::IntegerLiteral &literal);
 
