@@ -12,15 +12,15 @@ Environment::Environment()
     : mStack(), mFree(nullptr), mMalloc(nullptr), mInput(nullptr),
       mOutput(nullptr), mEntry(nullptr) {}
 
-void Environment::integerLiteral(IntegerLiteral &literal) {
+void Environment::integerLiteral(const IntegerLiteral &literal) {
   llvm::APInt value = literal.getValue();
   assert(value.getBitWidth() <= 32);
   mStack.back().insertStmt(&literal, ExprObject::mkVal(value.getZExtValue()));
 }
 
-void Environment::init(TranslationUnitDecl *unit) {
-  for (TranslationUnitDecl::decl_iterator i = unit->decls_begin(),
-                                          e = unit->decls_end();
+void Environment::init(const TranslationUnitDecl &unit) {
+  for (TranslationUnitDecl::decl_iterator i = unit.decls_begin(),
+                                          e = unit.decls_end();
        i != e; ++i) {
     if (FunctionDecl *fdecl = dyn_cast<FunctionDecl>(*i)) {
       if (fdecl->getName().equals("FREE")) {
@@ -39,114 +39,106 @@ void Environment::init(TranslationUnitDecl *unit) {
   mStack.push_back(StackFrame());
 }
 
-clang::FunctionDecl *Environment::getEntry() { return mEntry; }
-void Environment::binop(BinaryOperator *bop) {
-  assert(bop);
-  Expr *left = bop->getLHS();
-  Expr *right = bop->getRHS();
+const clang::FunctionDecl *Environment::getEntry() const { return mEntry; }
+
+void Environment::binop(const BinaryOperator &bop) {
+  const auto *left = bop.getLHS();
+  const auto *right = bop.getRHS();
 
   assert(left && right);
 
-  if (bop->isAssignmentOp()) {
-    auto val = getStmtVal(*right);
-    auto leftObj = mStack.back().getStmt(left);
+  if (bop.isAssignmentOp()) {
+    const auto val = getStmtVal(*right);
+    const auto leftObj = mStack.back().getStmt(left);
     auto &refLeft = refExpr(leftObj);
     refLeft = val;
 
     // Propogate the lvalue to binary op itself.
     // Thus we can support continous assignments.
-    mStack.back().insertStmt(bop, leftObj);
+    mStack.back().insertStmt(&bop, leftObj);
   } else {
-    ValueTy lhs = getStmtVal(*left);
-    ValueTy rhs = getStmtVal(*right);
+    const auto lhs = getStmtVal(*left);
+    const auto rhs = getStmtVal(*right);
 
-    ValueTy val;
-
-    // BinaryOP : + | - | * | / | < | > | ==
-    switch (bop->getOpcode()) {
-    case clang::BO_Add:
-      val = lhs + rhs;
-      break;
-    case clang::BO_Sub:
-      val = lhs - rhs;
-      break;
-    case clang::BO_Mul:
-      val = lhs * rhs;
-      break;
-    case clang::BO_Div:
-      val = lhs / rhs;
-      break;
-    case clang::BO_LT:
-      val = lhs < rhs;
-      break;
-    case clang::BO_GT:
-      val = lhs > rhs;
-      break;
-    case clang::BO_EQ:
-      val = lhs == rhs;
-      break;
-    default:
-      assert(false && "unexpected binary operation!");
-      break;
-    }
+    const auto val = [&]() -> ValueTy {
+      // BinaryOP : + | - | * | / | < | > | ==
+      switch (bop.getOpcode()) {
+      case clang::BO_Add:
+        return lhs + rhs;
+      case clang::BO_Sub:
+        return lhs - rhs;
+      case clang::BO_Mul:
+        return lhs * rhs;
+      case clang::BO_Div:
+        return lhs / rhs;
+      case clang::BO_LT:
+        return lhs < rhs;
+      case clang::BO_GT:
+        return lhs > rhs;
+      case clang::BO_EQ:
+        return lhs == rhs;
+      default:
+        assert(false && "unexpected binary operation!");
+      }
+    }();
 
     // The binary op evaluates to rvalue "val"
-    mStack.back().insertStmt(bop, ExprObject::mkVal(val));
+    mStack.back().insertStmt(&bop, ExprObject::mkVal(val));
   }
 }
 
-void Environment::unaryOp(UnaryOperator &unaryOp) {
-  ValueTy val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
+void Environment::unaryOp(const UnaryOperator &unaryOp) {
+  const auto val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
   assert(unaryOp.getOpcode() == clang::UO_Minus);
   mStack.back().insertStmt(&unaryOp, ExprObject::mkVal(-val));
 }
 
-void Environment::decl(DeclStmt *declstmt) {
-  for (auto decl : declstmt->decls()) {
+void Environment::decl(const DeclStmt &declstmt) {
+  for (const auto decl : declstmt.decls()) {
     if (VarDecl *vardecl = dyn_cast<VarDecl>(decl)) {
-      Expr *init = vardecl->getInit();
-      ValueTy initValue = init ? getStmtVal(*init) : 0;
+      const auto *init = vardecl->getInit();
+      const auto initValue = init ? getStmtVal(*init) : ValueTy(0);
       mStack.back().allocDecl(decl, initValue);
     }
   }
 }
-void Environment::declref(DeclRefExpr *declref) {
-  mStack.back().setPC(declref);
-  if (declref->getType()->isIntegerType()) {
-    Decl *decl = declref->getFoundDecl();
+void Environment::declref(const DeclRefExpr &declref) {
+  mStack.back().setPC(&declref);
+  if (declref.getType()->isIntegerType()) {
+    const auto *decl = declref.getFoundDecl();
     assert(decl);
 
     if (mStack.back().containsDecl(decl)) {
       // Local variable.
       auto idx = mStack.back().getDeclIdx(decl);
       // Reference stack element at "idx".
-      mStack.back().insertStmt(declref, ExprObject::mkRefStack(idx));
+      mStack.back().insertStmt(&declref, ExprObject::mkRefStack(idx));
     } else {
       // This must be a reference to global varaible.
       assert(mGlobalFrame.containsDecl(decl));
       auto idx = mGlobalFrame.getDeclIdx(decl);
-      mStack.back().insertStmt(declref, ExprObject::mkRefGlobal(idx));
+      mStack.back().insertStmt(&declref, ExprObject::mkRefGlobal(idx));
     }
   }
 }
 
-void Environment::cast(CastExpr *castexpr) {
-  mStack.back().setPC(castexpr);
-  assert(castexpr);
-  if (castexpr->getType()->isIntegerType()) {
-    Expr *expr = castexpr->getSubExpr();
+void Environment::cast(const CastExpr &castexpr) {
+  mStack.back().setPC(&castexpr);
+  if (castexpr.getType()->isIntegerType()) {
+    const auto *expr = castexpr.getSubExpr();
     assert(expr);
     auto val = getStmtVal(*expr);
-    mStack.back().insertStmt(castexpr, ExprObject::mkVal(val));
+    mStack.back().insertStmt(&castexpr, ExprObject::mkVal(val));
   }
 }
 
-Environment::FunctionCallVisitorAction Environment::call(CallExpr *pcallexpr) {
+Environment::FunctionCallVisitorAction
+Environment::call(const CallExpr *pcallexpr) {
   mStack.back().setPC(pcallexpr);
   ValueTy val = 0;
-  FunctionDecl *pcallee = pcallexpr->getDirectCallee();
-  auto &call = assertDeref(pcallee);
-  auto &callexpr = assertDeref(pcallexpr);
+  const FunctionDecl *pcallee = pcallexpr->getDirectCallee();
+  const auto &call = assertDeref(pcallee);
+  const auto &callexpr = assertDeref(pcallexpr);
   if (pcallee == mInput) {
     llvm::errs() << "Please Input an Integer Value : ";
     std::cin >> val;
@@ -154,13 +146,13 @@ Environment::FunctionCallVisitorAction Environment::call(CallExpr *pcallexpr) {
     mStack.back().insertStmt(pcallexpr, ExprObject::mkVal(val));
     return FunctionCallVisitorAction::mkIgnore();
   } else if (pcallee == mOutput) {
-    Expr *expr = callexpr.getArg(0);
+    const auto *expr = callexpr.getArg(0);
     assert(expr);
     val = getStmtVal(*expr);
     llvm::errs() << val;
     return FunctionCallVisitorAction::mkIgnore();
   } else {
-    FunctionDecl *pdef = pcallee->getDefinition();
+    const auto *pdef = pcallee->getDefinition();
     assert(pdef && "Undefined function called!");
     auto &def = *pdef;
 
@@ -168,7 +160,7 @@ Environment::FunctionCallVisitorAction Environment::call(CallExpr *pcallexpr) {
     StackFrame newFrame;
     unsigned numArgs = callexpr.getNumArgs();
     for (unsigned i = 0; i < numArgs; i++) {
-      ParmVarDecl *pparam = def.getParamDecl(i);
+      const auto *pparam = def.getParamDecl(i);
       assert(pparam);
       auto argVal = getStmtVal(assertDeref(callexpr.getArg(i)));
       newFrame.allocDecl(pparam, argVal);
@@ -182,14 +174,14 @@ Environment::FunctionCallVisitorAction Environment::call(CallExpr *pcallexpr) {
   }
 }
 
-clang::FunctionDecl &
-Environment::FunctionCallVisitorAction::getFunctionToVisit() {
+const clang::FunctionDecl &
+Environment::FunctionCallVisitorAction::getFunctionToVisit() const {
   assert(mKind == Kind::VISIT_BODY);
   return assertDeref(mVBPayload.mDecl);
 }
 
-void Environment::returnStmt(ReturnStmt &ret) {
-  Expr *value = ret.getRetValue();
+void Environment::returnStmt(const ReturnStmt &ret) {
+  const Expr *value = ret.getRetValue();
   mStack.back().setReturn(getStmtVal(assertDeref(value)));
 }
 
@@ -209,28 +201,28 @@ void Environment::callExit() {
   callerFrame.insertStmt(callerFrame.getPC(), ExprObject::mkVal(returnedValue));
 }
 
-void Environment::registerGlobalVar(VarDecl &var, ValueTy value) {
+void Environment::registerGlobalVar(const VarDecl &var, ValueTy value) {
   mGlobalFrame.allocDecl(&var, value);
 }
 
-void Environment::registerGlobalVarFromStack(VarDecl &var, Stmt &init) {
+void Environment::registerGlobalVarFromStack(const VarDecl &var, Stmt &init) {
   auto value = getStmtVal(init);
   registerGlobalVar(var, value);
 }
 
-int Environment::getDeclVal(Decl &decl) {
-  auto &topFrame = mStack.back();
+int Environment::getDeclVal(const Decl &decl) const {
+  const auto &topFrame = mStack.back();
   if (topFrame.containsDecl(&decl)) {
     return topFrame.getDeclVal(&decl);
   }
   return mGlobalFrame.getDeclVal(&decl);
 }
 
-ValueTy Environment::getStmtVal(Stmt &s) {
+ValueTy Environment::getStmtVal(const Stmt &s) const {
   auto v = mStack.back().getStmt(&s);
 
   if (v.isLValue()) {
-    return refExpr(v);
+    return getExpr(v);
   }
 
   return v.getData().mVal;
@@ -254,6 +246,30 @@ ValueTy &Environment::refExpr(ExprObject v) {
     break;
   case ExprObject::ValueKind::REF_GLOBAL:
     return refGlobal(v.getData().mGlobalIndex);
+  }
+
+  assert(false && "unexpected rvalue assignment");
+  __builtin_unreachable();
+}
+
+ValueTy Environment::getStack(std::size_t idx) const {
+  return mStack.back().getValueAt(idx);
+}
+
+ValueTy Environment::getGlobal(std::size_t idx) const {
+  return mGlobalFrame.getValueAt(idx);
+}
+
+ValueTy Environment::getExpr(ExprObject v) const {
+  switch (v.getType()) {
+  case ExprObject::ValueKind::REF_STACK:
+    return getStack(v.getData().mStackIndex);
+  case ExprObject::ValueKind::REF_HEAP:
+    return getStack(v.getData().mHeapIndex);
+  case ExprObject::ValueKind::VAL:
+    break;
+  case ExprObject::ValueKind::REF_GLOBAL:
+    return getGlobal(v.getData().mGlobalIndex);
   }
 
   assert(false && "unexpected rvalue assignment");

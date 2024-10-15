@@ -42,12 +42,12 @@ public:
 
     /// This value should be non-null if Kind == "VISIT_BODY"
     struct VisitBodyPayload {
-      clang::FunctionDecl *mDecl = nullptr;
+      const clang::FunctionDecl *mDecl = nullptr;
     };
 
   private:
-    Kind mKind;
-    VisitBodyPayload mVBPayload;
+    const Kind mKind;
+    const VisitBodyPayload mVBPayload;
 
     FunctionCallVisitorAction(Kind kind, VisitBodyPayload vbpayload)
         : mKind(kind), mVBPayload(vbpayload) {}
@@ -61,7 +61,7 @@ public:
       return {Kind::VISIT_BODY, {payload}};
     }
 
-    [[nodiscard]] clang::FunctionDecl &getFunctionToVisit();
+    [[nodiscard]] const clang::FunctionDecl &getFunctionToVisit() const;
 
     [[nodiscard]] Kind kind() const { return mKind; }
   };
@@ -71,48 +71,51 @@ private:
 
   StackFrame mGlobalFrame;
 
-  clang::FunctionDecl *mFree; /// Declartions to the built-in functions
-  clang::FunctionDecl *mMalloc;
-  clang::FunctionDecl *mInput;
-  clang::FunctionDecl *mOutput;
+  const clang::FunctionDecl *mFree; /// Declartions to the built-in functions
+  const clang::FunctionDecl *mMalloc;
+  const clang::FunctionDecl *mInput;
+  const clang::FunctionDecl *mOutput;
 
-  clang::FunctionDecl *mEntry;
+  const clang::FunctionDecl *mEntry;
 
 public:
   /// Get the declartions to the built-in functions
   Environment();
 
   /// Record integer literals
-  void integerLiteral(clang::IntegerLiteral &literal);
+  void integerLiteral(const clang::IntegerLiteral &literal);
 
-  void registerGlobalVar(clang::VarDecl &var, ValueTy value);
-  void registerGlobalVarFromStack(clang::VarDecl &var, clang::Stmt &init);
+  void registerGlobalVar(const clang::VarDecl &var, ValueTy value);
+  void registerGlobalVarFromStack(const clang::VarDecl &var, clang::Stmt &init);
 
   /// Initialize the Environment
-  void init(clang::TranslationUnitDecl *unit);
+  void init(const clang::TranslationUnitDecl &unit);
 
-  clang::FunctionDecl *getEntry();
+  const clang::FunctionDecl *getEntry() const;
 
-  void binop(clang::BinaryOperator *bop);
+  void binop(const clang::BinaryOperator &bop);
 
-  void unaryOp(clang::UnaryOperator &unaryOp);
+  void unaryOp(const clang::UnaryOperator &unaryOp);
 
-  void decl(clang::DeclStmt *declstmt);
-  void declref(clang::DeclRefExpr *declref);
+  void decl(const clang::DeclStmt &declstmt);
+  void declref(const clang::DeclRefExpr &declref);
 
-  void cast(clang::CastExpr *castexpr);
+  void cast(const clang::CastExpr &castexpr);
 
-  [[nodiscard]] FunctionCallVisitorAction call(clang::CallExpr *callexpr);
+  [[nodiscard]] FunctionCallVisitorAction call(const clang::CallExpr *callexpr);
 
-  void returnStmt(clang::ReturnStmt &ret);
+  void returnStmt(const clang::ReturnStmt &ret);
 
   /// The function call exited. Switch the context to caller.
   void callExit();
 
-  ValueTy getDeclVal(clang::Decl &decl);
-  ValueTy getStmtVal(clang::Stmt &s);
+  ValueTy getDeclVal(const clang::Decl &decl) const;
+  ValueTy getStmtVal(const clang::Stmt &s) const;
 
   ValueTy &refStack(std::size_t idx);
   ValueTy &refGlobal(std::size_t idx);
   ValueTy &refExpr(ExprObject v);
+  ValueTy getStack(std::size_t idx) const;
+  ValueTy getGlobal(std::size_t idx) const;
+  ValueTy getExpr(ExprObject v) const;
 };

@@ -32,7 +32,7 @@ public:
 
   void VisitBinaryOperator(BinaryOperator *bop) {
     VisitStmt(bop);
-    mEnv->binop(bop);
+    mEnv->binop(assertDeref(bop));
   }
 
   void VisitUnaryOperator(UnaryOperator *unaryOp) {
@@ -42,11 +42,11 @@ public:
 
   void VisitDeclRefExpr(DeclRefExpr *expr) {
     VisitStmt(expr);
-    mEnv->declref(expr);
+    mEnv->declref(assertDeref(expr));
   }
   void VisitCastExpr(CastExpr *expr) {
     VisitStmt(expr);
-    mEnv->cast(expr);
+    mEnv->cast(assertDeref(expr));
   }
   void VisitCallExpr(CallExpr *call) {
     VisitStmt(call);
@@ -56,7 +56,7 @@ public:
     case VisitorAction::Kind::IGNORE:
       break;
     case VisitorAction::Kind::VISIT_BODY: {
-      FunctionDecl &func = visitorAction.getFunctionToVisit();
+      const auto &func = visitorAction.getFunctionToVisit();
       try {
         Visit(func.getBody());
       } catch (ReturnException &e) {
@@ -127,7 +127,7 @@ public:
 
   void VisitDeclStmt(DeclStmt *declstmt) {
     VisitStmt(declstmt);
-    mEnv->decl(declstmt);
+    mEnv->decl(assertDeref(declstmt));
   }
 
 private:
@@ -141,8 +141,8 @@ public:
   virtual ~InterpreterConsumer() {}
 
   virtual void HandleTranslationUnit(clang::ASTContext &context) {
-    TranslationUnitDecl *decl = context.getTranslationUnitDecl();
-    mEnv.init(decl);
+    const auto *decl = context.getTranslationUnitDecl();
+    mEnv.init(*decl);
 
     // Process global variables.
     {
@@ -162,7 +162,7 @@ public:
       }
     }
 
-    FunctionDecl *entry = mEnv.getEntry();
+    const auto *entry = mEnv.getEntry();
     try {
       mVisitor.VisitStmt(entry->getBody());
     } catch (ReturnException &) {

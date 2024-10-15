@@ -23,8 +23,6 @@ CheckOptions:
     value: camelBack
   - key: readability-identifier-naming.VariableCase
     value: camelBack
-  - key: readability-identifier-naming.ConstantCase
-    value: UPPER_CASE
   - key: readability-identifier-naming.ParameterCase
     value: camelBack
   - key: readability-identifier-naming.MemberPrefix
