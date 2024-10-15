@@ -17,11 +17,11 @@ class StackFrame {
   /// StackFrame maps Variable Declaration to Value
   /// Which are either integer or addresses (also represented using an Integer
   /// value)
-  std::map<clang::Decl *, std::size_t> mVars;
-  std::map<clang::Stmt *, ExprObject> mExprs;
+  std::map<const clang::Decl *, std::size_t> mVars;
+  std::map<const clang::Stmt *, ExprObject> mExprs;
 
   /// The current stmt
-  clang::Stmt *mPC;
+  const clang::Stmt *mPC;
 
   ValueTy mReturn;
 
@@ -34,17 +34,18 @@ public:
   ValueTy getValueAt(std::size_t idx) const;
   ValueTy &refValueAt(std::size_t idx);
 
-  std::size_t allocDecl(clang::Decl *decl, ValueTy init = 0, std::size_t n = 1);
-  bool containsDecl(clang::Decl *decl);
-  std::size_t getDeclIdx(clang::Decl *decl) const;
-  ValueTy getDeclVal(clang::Decl *decl) const;
-  ValueTy &refDeclVal(clang::Decl *decl);
+  std::size_t allocDecl(const clang::Decl *decl, ValueTy init = 0,
+                        std::size_t n = 1);
+  bool containsDecl(const clang::Decl *decl) const;
+  std::size_t getDeclIdx(const clang::Decl *decl) const;
+  ValueTy getDeclVal(const clang::Decl *decl) const;
+  ValueTy &refDeclVal(const clang::Decl *decl);
 
-  bool containsStmt(clang::Stmt *stmt);
-  ExprObject getStmt(clang::Stmt *stmt) const;
-  ExprObject &refStmt(clang::Stmt *stmt);
-  void insertStmt(clang::Stmt *stmt, ExprObject val);
+  bool containsStmt(const clang::Stmt *stmt) const;
+  ExprObject getStmt(const clang::Stmt *stmt) const;
+  ExprObject &refStmt(const clang::Stmt *stmt);
+  void insertStmt(const clang::Stmt *stmt, ExprObject val);
 
-  void setPC(clang::Stmt *stmt);
-  clang::Stmt *getPC();
+  void setPC(const clang::Stmt *stmt);
+  const clang::Stmt *getPC();
 };
