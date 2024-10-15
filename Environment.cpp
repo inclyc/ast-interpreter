@@ -124,6 +124,10 @@ void Environment::binop(const BinaryOperator &bop) {
         return lhs < rhs;
       case clang::BO_GT:
         return lhs > rhs;
+      case clang::BO_GE:
+        return lhs >= rhs;
+      case clang::BO_LE:
+        return lhs <= rhs;
       case clang::BO_EQ:
         return lhs == rhs;
       default:
