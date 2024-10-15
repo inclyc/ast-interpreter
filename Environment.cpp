@@ -45,6 +45,23 @@ void Environment::integerLiteral(const IntegerLiteral &literal) {
   mStack.back().insertStmt(&literal, ExprObject::mkVal(value.getZExtValue()));
 }
 
+namespace {
+
+std::size_t calcSizeOf(const clang::Type &type) {
+  return type.isIntegerType() ? sizeof(ValueTy) : sizeof(void *);
+}
+
+} // namespace
+
+void Environment::unaryExprOrTypeTrait(
+    const clang::UnaryExprOrTypeTraitExpr &ute) {
+  const auto kind = ute.getKind();
+  const auto &type = *ute.getArgumentType();
+  assert(kind == clang::UETT_SizeOf && "Can only handle sizeof!");
+
+  mStack.back().insertStmt(&ute, ExprObject::mkVal(calcSizeOf(type)));
+}
+
 void Environment::init(const TranslationUnitDecl &unit) {
   for (TranslationUnitDecl::decl_iterator i = unit.decls_begin(),
                                           e = unit.decls_end();
@@ -256,7 +273,7 @@ void Environment::registerGlobalVarFromStack(const VarDecl &var, Stmt &init) {
   registerGlobalVar(var, value);
 }
 
-int Environment::getDeclVal(const Decl &decl) const {
+ValueTy Environment::getDeclVal(const Decl &decl) const {
   const auto &topFrame = mStack.back();
   if (topFrame.containsDecl(&decl)) {
     return topFrame.getDeclVal(&decl);

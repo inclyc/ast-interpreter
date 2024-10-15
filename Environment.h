@@ -87,6 +87,8 @@ public:
   /// Record integer literals
   void integerLiteral(const clang::IntegerLiteral &literal);
 
+  void unaryExprOrTypeTrait(const clang::UnaryExprOrTypeTraitExpr &ute);
+
   void registerGlobalVar(const clang::VarDecl &var, ValueTy value);
   void registerGlobalVarFromStack(const clang::VarDecl &var, clang::Stmt &init);
 

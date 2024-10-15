@@ -73,6 +73,11 @@ public:
     }
   }
 
+  void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *expr) {
+    VisitStmt(expr);
+    mEnv->unaryExprOrTypeTrait(assertDeref(expr));
+  }
+
   void VisitIfStmt(IfStmt *pIfStmt) {
     IfStmt &ifStmt = assertDeref(pIfStmt);
 
