@@ -5,12 +5,6 @@
 
 #include <clang/AST/Expr.h>
 
-#include <exception>
-
-struct NoSuchDeclException : std::exception {
-  const char *what() const noexcept override { return "No such declaration"; }
-};
-
 class StackFrame {
   std::vector<ValueTy> mData;
 
