@@ -40,6 +40,11 @@ public:
     mEnv->unaryOp(assertDeref(unaryOp));
   }
 
+  void VisitParenExpr(ParenExpr *paren) {
+    VisitStmt(paren);
+    mEnv->paren(*paren);
+  }
+
   void VisitDeclRefExpr(DeclRefExpr *expr) {
     VisitStmt(expr);
     mEnv->declref(assertDeref(expr));

@@ -99,6 +99,8 @@ public:
 
   void binop(const clang::BinaryOperator &bop);
 
+  void paren(const clang::ParenExpr &paren);
+
   void unaryOp(const clang::UnaryOperator &unaryOp);
 
   void decl(const clang::DeclStmt &declstmt);

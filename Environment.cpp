@@ -131,6 +131,12 @@ void Environment::binop(const BinaryOperator &bop) {
   }
 }
 
+void Environment::paren(const ParenExpr &paren) {
+  const auto *subexpr = paren.getSubExpr();
+  const auto subval = getStmtVal(assertDeref(paren.getSubExpr()));
+  mStack.back().insertStmt(&paren, mStack.back().getStmt(subexpr));
+}
+
 void Environment::unaryOp(const UnaryOperator &unaryOp) {
   const auto val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
   assert(unaryOp.getOpcode() == clang::UO_Minus);
