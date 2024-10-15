@@ -9,7 +9,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
 
-using GlobalVarMap = std::map<clang::Decl *, VariableValueTy>;
+using GlobalVarMap = std::map<clang::Decl *, ValueTy>;
 
 /// Heap maps address to a value
 /*
@@ -80,7 +80,7 @@ private:
 
   clang::FunctionDecl *mEntry;
 
-  void bindStmt(clang::Stmt &s, VariableValueTy val);
+  void bindStmt(clang::Stmt &s, ValueTy val);
 
 public:
   /// Get the declartions to the built-in functions
@@ -89,7 +89,7 @@ public:
   /// Record integer literals
   void integerLiteral(clang::IntegerLiteral &literal);
 
-  void registerGlobalVar(clang::VarDecl &var, VariableValueTy value);
+  void registerGlobalVar(clang::VarDecl &var, ValueTy value);
   void registerGlobalVarFromStack(clang::VarDecl &var, clang::Stmt &init);
 
   /// Initialize the Environment
@@ -113,6 +113,6 @@ public:
   /// The function call exited. Switch the context to caller.
   void callExit();
 
-  VariableValueTy getDeclVal(clang::Decl &decl);
-  VariableValueTy getStmtVal(clang::Stmt &s);
+  ValueTy getDeclVal(clang::Decl &decl);
+  ValueTy getStmtVal(clang::Stmt &s);
 };

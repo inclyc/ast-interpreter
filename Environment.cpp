@@ -53,8 +53,8 @@ void Environment::binop(BinaryOperator *bop) {
       mStack.back().bindDecl(decl, val);
     }
   } else {
-    VariableValueTy lhs = getStmtVal(*left);
-    VariableValueTy rhs = getStmtVal(*right);
+    ValueTy lhs = getStmtVal(*left);
+    ValueTy rhs = getStmtVal(*right);
 
     // BinaryOP : + | - | * | / | < | > | ==
     switch (bop->getOpcode()) {
@@ -87,7 +87,7 @@ void Environment::binop(BinaryOperator *bop) {
 }
 
 void Environment::unaryOp(UnaryOperator &unaryOp) {
-  VariableValueTy val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
+  ValueTy val = getStmtVal(assertDeref(unaryOp.getSubExpr()));
   assert(unaryOp.getOpcode() == clang::UO_Minus);
   bindStmt(unaryOp, -val);
 }
@@ -99,7 +99,7 @@ void Environment::decl(DeclStmt *declstmt) {
     Decl *decl = *it;
     if (VarDecl *vardecl = dyn_cast<VarDecl>(decl)) {
       Expr *init = vardecl->getInit();
-      VariableValueTy initValue = init ? getStmtVal(*init) : 0;
+      ValueTy initValue = init ? getStmtVal(*init) : 0;
       mStack.back().bindDecl(vardecl, initValue);
     }
   }
@@ -118,14 +118,14 @@ void Environment::cast(CastExpr *castexpr) {
   assert(castexpr);
   if (castexpr->getType()->isIntegerType()) {
     Expr *expr = castexpr->getSubExpr();
-    VariableValueTy val = mStack.back().getStmtVal(expr);
+    ValueTy val = mStack.back().getStmtVal(expr);
     bindStmt(*castexpr, val);
   }
 }
 
 Environment::FunctionCallVisitorAction Environment::call(CallExpr *pcallexpr) {
   mStack.back().setPC(pcallexpr);
-  VariableValueTy val = 0;
+  ValueTy val = 0;
   FunctionDecl *pcallee = pcallexpr->getDirectCallee();
   auto &call = assertDeref(pcallee);
   auto &callexpr = assertDeref(pcallexpr);
@@ -185,11 +185,11 @@ void Environment::callExit() {
   StackFrame &callerFrame = mStack.back();
 
   // Set the value of "callexpr" in caller frame to "return"-ed value.
-  VariableValueTy returnedValue = calleeFrame.getReturn();
+  ValueTy returnedValue = calleeFrame.getReturn();
   callerFrame.bindStmt(callerFrame.getPC(), returnedValue);
 }
 
-void Environment::registerGlobalVar(VarDecl &var, VariableValueTy value) {
+void Environment::registerGlobalVar(VarDecl &var, ValueTy value) {
   assert(mGlovalVars.count(&var) == 0);
   mGlovalVars.insert({&var, value});
 }
@@ -208,10 +208,10 @@ int Environment::getDeclVal(Decl &decl) {
   }
 }
 
-VariableValueTy Environment::getStmtVal(Stmt &s) {
+ValueTy Environment::getStmtVal(Stmt &s) {
   return mStack.back().getStmtVal(&s);
 }
 
-void Environment::bindStmt(Stmt &s, VariableValueTy val) {
+void Environment::bindStmt(Stmt &s, ValueTy val) {
   mStack.back().bindStmt(&s, val);
 }

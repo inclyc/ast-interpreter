@@ -76,7 +76,7 @@ public:
     Stmt *ifElse = ifStmt.getElse();
 
     // Check if the cond evaluates to non-zero
-    VariableValueTy condValue = mEnv->getStmtVal(assertDeref(cond));
+    ValueTy condValue = mEnv->getStmtVal(assertDeref(cond));
     Stmt *nextBlock = condValue ? ifThen : ifElse;
 
     // Jump to next block, if it exists.

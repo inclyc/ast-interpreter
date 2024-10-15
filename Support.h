@@ -8,4 +8,4 @@ template <class T> T &assertDeref(T *ptr) {
   return (assert(ptr && "ptr should not be null!"), *ptr);
 }
 
-using VariableValueTy = int;
+using ValueTy = int;
